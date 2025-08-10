@@ -4,96 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log Starlight - Finance Manager</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar-brand { font-weight: 600; }
+        .main-content { background-color: #ffffff; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,.08); margin-top: 1rem; }
+        .page-header h2 { font-weight: 600; color: #343a40; }
+        .form-control, .form-select, .btn { border-radius: 8px; }
+        .btn-primary { background-color: #0d6efd; border-color: #0d6efd; font-weight: 500; transition: all 0.2s ease-in-out; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3); }
+        .table thead th { background-color: #e9ecef; color: #495057; font-weight: 600; vertical-align: middle; }
+        .table td { vertical-align: middle; font-size: 0.9rem; }
+        .table .action-buttons .btn { margin: 0 2px; }
+        .action-buttons .btn i { pointer-events: none; }
+        .modal-header { background-color: #0d6efd; color: white; }
+        .modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+        input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        .countdown-urgent { color: #dc3545; font-weight: 600; }
+        .countdown-soon { color: #ffc107; font-weight: 600; }
+        .countdown-normal { color: #198754; }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Finance Manager</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <a class="navbar-brand" href="#"><i class="bi bi-cash-coin me-2"></i>Finance Manager</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.html">Produk</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="penjualan.html">Penjualan</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="pengeluaran.html">Pengeluaran</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="laporan.html">Laporan</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="logstarlight.html">Log Starlight</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="pengingat.html">Pengingat</a>
-                    </li>
+                    <li class="nav-item"> <a class="nav-link" href="index.html">Produk</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="penjualan.html">Penjualan</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="pengeluaran.html">Pengeluaran</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="laporan.html">Laporan</a> </li>
+                    <li class="nav-item"> <a class="nav-link active" aria-current="page" href="logstarlight.html">Log Starlight</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="pengingat.html">Pengingat</a> </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <h2 class="mb-4">Log Starlight & Gift</h2>
-
-        <div class="row mb-3">
-            <div class="col-md-3 mb-2">
-                <input type="text" class="form-control" id="searchLog" placeholder="Cari ID/Nick Customer...">
-            </div>
-            <div class="col-md-3 mb-2">
-                <select class="form-select" id="filterStatusGift">
-                    <option value="">Semua Status Gift</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Done">Done</option>
-                    <option value="Cancel">Cancel</option>
-                    <option value="Error">Error</option>
-                </select>
-            </div>
-            <div class="col-md-3 mb-2">
-                <select class="form-select" id="filterTipeSL">
-                    <option value="">Semua Tipe SL</option>
-                    <option value="Basic">Basic</option>
-                    <option value="Premium">Premium</option>
-                </select>
-            </div>
-            <div class="col-md-3 text-md-end mb-2">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahLogModal">Tambah Log Baru</button>
-            </div>
+    <div class="container my-4">
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-star-fill me-2"></i>Log Starlight & Gift</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahLogModal">
+                <i class="bi bi-plus-circle-fill me-2"></i>Tambah Log Baru
+            </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>TGL ADD</th>
-                        <th>NICK AKUN GIFT</th>
-                        <th>ID CUST</th>
-                        <th>NICK CUST</th>
-                        <th>TIPE SL</th>
-                        <th>SUDAH BAYAR</th>
-                        <th>STATUS GIFT</th>
-                        <th>TGL GIFT</th>
-                        <th>CATATAN</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="dataLogTableBody">
+        <div class="main-content">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchLog" placeholder="Cari ID/Nick Customer...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-toggles"></i></span>
+                        <select class="form-select" id="filterStatusGift">
+                            <option value="">Semua Status Gift</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Done">Done</option>
+                            <option value="Cancel">Cancel</option>
+                            <option value="Error">Error</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-gem"></i></span>
+                        <select class="form-select" id="filterTipeSL">
+                            <option value="">Semua Tipe SL</option>
+                            <option value="Basic">Basic</option>
+                            <option value="Premium">Premium</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="text-center">
+                        <tr>
+                            <th>CUSTOMER</th>
+                            <th>AKUN GIFT</th>
+                            <th>DETAIL ORDER</th>
+                            <th>STATUS</th>
+                            <th>COUNTDOWN</th>
+                            <th>AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataLogTableBody">
                     </tbody>
-            </table>
+                </table>
+            </div>
         </div>
     </div>
 
     <div class="modal fade" id="tambahLogModal" tabindex="-1" aria-labelledby="tambahLogModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px;">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="tambahLogModalLabel">Tambah Log Starlight Baru</h5>
+                    <h5 class="modal-title" id="tambahLogModalLabel"><i class="bi bi-journal-plus me-2"></i>Formulir Log Starlight</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -101,7 +121,7 @@
                         <input type="hidden" id="editLogId">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="inputTglAdd" class="form-label">Tanggal Catatan Dibuat</label>
+                                <label for="inputTglAdd" class="form-label">Tgl. Dibuat</label>
                                 <input type="date" class="form-control" id="inputTglAdd" required>
                             </div>
                             <div class="col-md-6 mb-3">
@@ -123,33 +143,31 @@
                             <div class="col-md-6 mb-3">
                                 <label for="inputTipeSL" class="form-label">Tipe Starlight</label>
                                 <select class="form-select" id="inputTipeSL" required>
-                                    <option value="">Pilih Tipe SL...</option>
+                                    <option value="" disabled selected>Pilih Tipe...</option>
                                     <option value="Basic">Basic</option>
                                     <option value="Premium">Premium</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label for="inputTglGift" class="form-label">Tanggal Gift (Target)</label>
+                                <input type="date" class="form-control" id="inputTglGift" required>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row align-items-center">
+                            <div class="col-md-6 mb-3">
                                 <label for="inputStatusGift" class="form-label">Status Gift</label>
                                 <select class="form-select" id="inputStatusGift" required>
-                                    <option value="">Pilih Status...</option>
                                     <option value="Pending">Pending</option>
                                     <option value="Done">Done</option>
                                     <option value="Cancel">Cancel</option>
                                     <option value="Error">Error</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="inputTglGift" class="form-label">Tanggal Gift (Target/Aktual)</label>
-                                <input type="date" class="form-control" id="inputTglGift" required>
-                            </div>
                             <div class="col-md-6 mb-3">
                                 <div class="form-check pt-4">
-                                    <input class="form-check-input" type="checkbox" id="inputSudahBayar">
-                                    <label class="form-check-label" for="inputSudahBayar">
-                                        Sudah Bayar?
-                                    </label>
+                                    <input class="form-check-input" type="checkbox" id="inputSudahBayar" style="width: 1.25em; height: 1.25em;">
+                                    <label class="form-check-label ms-2" for="inputSudahBayar">Sudah Bayar?</label>
                                 </div>
                             </div>
                         </div>
@@ -157,7 +175,9 @@
                             <label for="inputCatatan" class="form-label">Catatan (Opsional)</label>
                             <textarea class="form-control" id="inputCatatan" rows="2"></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary">Simpan Log</button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Simpan Log</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -165,40 +185,40 @@
     </div>
 
     <div class="modal fade" id="addReminderModal" tabindex="-1" aria-labelledby="addReminderModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px;">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addReminderModalLabel">Tambah Pengingat Gift</h5>
+                    <h5 class="modal-title" id="addReminderModalLabel"><i class="bi bi-bell-fill me-2"></i>Tambah Pengingat Gift</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="reminderForm">
                         <input type="hidden" id="reminderLogId">
                         <div class="mb-3">
-                            <label for="reminderNickCust" class="form-label">Nickname Customer</label>
-                            <input type="text" class="form-control" id="reminderNickCust" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label for="reminderTipeSL" class="form-label">Tipe Starlight</label>
-                            <input type="text" class="form-control" id="reminderTipeSL" readonly>
+                            <label class="form-label">Akan mengingatkan untuk gift:</label>
+                            <div class="alert alert-info">
+                                <strong>Customer:</strong> <span id="reminderNickCust"></span><br>
+                                <strong>Tipe:</strong> <span id="reminderTipeSL"></span>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="reminderDate" class="form-label">Tanggal Pengingat</label>
                             <input type="date" class="form-control" id="reminderDate" required>
                         </div>
                         <div class="mb-3">
-                            <label for="reminderNotes" class="form-label">Catatan Pengingat (Opsional)</label>
-                            <textarea class="form-control" id="reminderNotes" rows="3"></textarea>
+                            <label for="reminderNotes" class="form-label">Catatan Pengingat</label>
+                            <textarea class="form-control" id="reminderNotes" rows="3" placeholder="Contoh: Follow up pembayaran, siapkan akun gift, dll."></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary">Simpan Pengingat</button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Simpan Pengingat</button>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/logstarlight.js"></script>
+    <script src="js/logstarlight.js" defer></script>
 </body>
 </html>

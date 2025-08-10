@@ -4,13 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen Pengeluaran - Finance Manager</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .navbar-brand {
+            font-weight: 600;
+        }
+        .main-content {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,.08);
+            margin-top: 2rem;
+        }
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        .page-header h2 {
+            font-weight: 600;
+            color: #343a40;
+        }
+        .table thead th {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .table tbody tr:hover {
+            background-color: #f1f3f5;
+        }
+        .table td {
+            vertical-align: middle;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .table td:nth-child(3) { 
+            text-align: left;
+            font-weight: 500;
+        }
+        .table .action-buttons .btn {
+            margin: 0 4px;
+        }
+        .action-buttons .btn i {
+            pointer-events: none;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+        }
+        .modal-header {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .modal-header .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        .modal-title {
+            font-weight: 500;
+        }
+        .expense-amount {
+            color: #dc3545; /* Merah untuk pengeluaran */
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Finance Manager</a>
+            <a class="navbar-brand" href="#"><i class="bi bi-cash-coin me-2"></i>Finance Manager</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -36,54 +127,62 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <h2 class="mb-4">Daftar Pengeluaran</h2>
-
-        <div class="row mb-3">
-            <div class="col-md-4 mb-2">
-                <input type="text" class="form-control" id="searchPengeluaran" placeholder="Cari Deskripsi/Kategori...">
-            </div>
-            <div class="col-md-4 mb-2">
-                <select class="form-select" id="filterKategoriPengeluaran">
-                    <option value="">Semua Kategori</option>
-                    <option value="Biaya Operasional">Biaya Operasional</option>
-                    <option value="Biaya Pemasaran">Biaya Pemasaran</option>
-                    <option value="Gaji Karyawan">Gaji Karyawan</option>
-                    <option value="Sewa">Sewa</option>
-                    <option value="Utilitas">Utilitas</option>
-                    <option value="Lain-lain">Lain-lain</option>
-                </select>
-            </div>
-            <div class="col-md-4 text-md-end mb-2">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahPengeluaranModal">Catat Pengeluaran Baru</button>
-            </div>
+    <div class="container my-4">
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-wallet2 me-2"></i>Daftar Pengeluaran</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahPengeluaranModal">
+                <i class="bi bi-plus-circle-fill me-2"></i>Catat Pengeluaran Baru
+            </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>ID PENGELUARAN</th>
-                        <th>TANGGAL</th>
-                        <th>DESKRIPSI</th>
-                        <th>KATEGORI</th>
-                        <th>JUMLAH (Rp)</th>
-                        <th>METODE PEMBAYARAN</th>
-                        <th>CATATAN</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="dataPengeluaranTableBody">
-                    </tbody>
-            </table>
+        <div class="main-content">
+            <div class="row mb-4">
+                <div class="col-md-6 mb-2">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchPengeluaran" placeholder="Cari deskripsi pengeluaran...">
+                    </div>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-filter-left"></i></span>
+                        <select class="form-select" id="filterKategoriPengeluaran">
+                            <option value="">Semua Kategori</option>
+                            <option value="Biaya Operasional">Biaya Operasional</option>
+                            <option value="Biaya Pemasaran">Biaya Pemasaran</option>
+                            <option value="Gaji Karyawan">Gaji Karyawan</option>
+                            <option value="Sewa">Sewa</option>
+                            <option value="Utilitas">Utilitas</option>
+                            <option value="Lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>TANGGAL</th>
+                            <th>DESKRIPSI</th>
+                            <th>KATEGORI</th>
+                            <th>JUMLAH</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataPengeluaranTableBody">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <div class="modal fade" id="tambahPengeluaranModal" tabindex="-1" aria-labelledby="tambahPengeluaranModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 12px;">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="tambahPengeluaranModalLabel">Catat Pengeluaran Baru</h5>
+                    <h5 class="modal-title" id="tambahPengeluaranModalLabel"><i class="bi bi-card-text me-2"></i>Formulir Pengeluaran</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -95,12 +194,12 @@
                         </div>
                         <div class="mb-3">
                             <label for="inputDeskripsiPengeluaran" class="form-label">Deskripsi</label>
-                            <input type="text" class="form-control" id="inputDeskripsiPengeluaran" required>
+                            <input type="text" class="form-control" id="inputDeskripsiPengeluaran" placeholder="Contoh: Bayar tagihan internet" required>
                         </div>
                         <div class="mb-3">
                             <label for="inputKategoriPengeluaranModal" class="form-label">Kategori</label>
                             <select class="form-select" id="inputKategoriPengeluaranModal" required>
-                                <option value="">Pilih Kategori...</option>
+                                <option value="" disabled selected>Pilih Kategori...</option>
                                 <option value="Biaya Operasional">Biaya Operasional</option>
                                 <option value="Biaya Pemasaran">Biaya Pemasaran</option>
                                 <option value="Gaji Karyawan">Gaji Karyawan</option>
@@ -116,7 +215,6 @@
                         <div class="mb-3">
                             <label for="inputMetodePembayaranPengeluaran" class="form-label">Metode Pembayaran</label>
                             <select class="form-select" id="inputMetodePembayaranPengeluaran" required>
-                                <option value="">Pilih Metode...</option>
                                 <option value="Cash">Cash</option>
                                 <option value="Transfer Bank">Transfer Bank</option>
                                 <option value="E-Wallet">E-Wallet</option>
@@ -126,7 +224,9 @@
                             <label for="inputCatatanPengeluaranModal" class="form-label">Catatan (Opsional)</label>
                             <textarea class="form-control" id="inputCatatanPengeluaranModal" rows="2"></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary">Simpan Pengeluaran</button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Simpan Pengeluaran</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -134,6 +234,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/pengeluaran.js"></script>
+    <script src="js/pengeluaran.js" defer></script>
 </body>
 </html>

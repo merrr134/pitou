@@ -1,145 +1,182 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Re-declare utility functions (or ensure they are globally available from other scripts)
-    // For simplicity, we'll re-declare local storage getters here.
-    // In a real app, you might refactor these into a single utility file.
-
-    // Assumes these functions are available globally from script.js, penjualan.js, pengeluaran.js
-    // If not, you'd copy them here or ensure proper script loading order.
-    function getProductsFromLocalStorage() { // From script.js, now global getProductsData()
-        return typeof getProductsData === 'function' ? getProductsData() : [];
-    }
-
-    function getSalesFromLocalStorage() { // From penjualan.js
-        const storedSales = localStorage.getItem('sales');
-        return storedSales ? JSON.parse(storedSales) : [];
-    }
-
-    function getExpensesFromLocalStorage() { // From pengeluaran.js
-        const storedExpenses = localStorage.getItem('expenses');
-        return storedExpenses ? JSON.parse(storedExpenses) : [];
-    }
-
-    function formatRupiah(number) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(number);
-    }
-
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
+    const SALES_STORAGE_KEY = 'sales';
+    const EXPENSE_STORAGE_KEY = 'expenses';
 
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
-    const generateReportButton = document.getElementById('generateReport');
+    const generateReportBtn = document.getElementById('generateReport');
+    // --- TOMBOL BARU ---
+    const downloadFilteredBtn = document.getElementById('downloadFilteredBtn'); 
+    const downloadLastMonthBtn = document.getElementById('downloadLastMonthBtn');
 
-    const totalPendapatanElement = document.getElementById('totalPendapatan');
-    const totalPengeluaranElement = document.getElementById('totalPengeluaran');
-    const totalLabaBersihElement = document.getElementById('totalLabaBersih');
-    const totalLabaKotorPenjualanElement = document.getElementById('totalLabaKotorPenjualan');
+    const totalPendapatanEl = document.getElementById('totalPendapatan');
+    const totalPengeluaranEl = document.getElementById('totalPengeluaran');
+    const totalLabaKotorEl = document.getElementById('totalLabaKotor');
+    const totalLabaBersihEl = document.getElementById('totalLabaBersih');
 
-    const reportSalesTableBody = document.getElementById('reportSalesTableBody');
-    const reportExpensesTableBody = document.getElementById('reportExpensesTableBody');
+    const salesTableBody = document.getElementById('reportSalesTableBody');
+    const expensesTableBody = document.getElementById('reportExpensesTableBody');
 
-    // Set default filter dates (e.g., last 30 days)
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
+    function getSalesData() { return JSON.parse(localStorage.getItem(SALES_STORAGE_KEY) || '[]'); }
+    function getExpensesData() { return JSON.parse(localStorage.getItem(EXPENSE_STORAGE_KEY) || '[]'); }
 
-    startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
-    endDateInput.value = today.toISOString().split('T')[0];
-
-    function generateReport() {
-        const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
-        const endDate = endDateInput.value ? new Date(endDateInput.value + 'T23:59:59') : null; // End of day
-
-        const allSales = getSalesFromLocalStorage();
-        const allExpenses = getExpensesFromLocalStorage();
-
-        let filteredSales = allSales;
-        let filteredExpenses = allExpenses;
-
-        if (startDate && endDate) {
-            filteredSales = allSales.filter(sale => {
-                const saleDate = new Date(sale.tanggal + 'T00:00:00'); // Ensure consistent date parsing
-                return saleDate >= startDate && saleDate <= endDate;
-            });
-
-            filteredExpenses = allExpenses.filter(expense => {
-                const expenseDate = new Date(expense.tanggal + 'T00:00:00'); // Ensure consistent date parsing
-                return expenseDate >= startDate && expenseDate <= endDate;
-            });
+    function formatRupiah(number) {
+        if (isNaN(number)) number = 0;
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+    }
+    
+    function formatDate(dateString, forFileName = false) {
+        const date = new Date(dateString + 'T00:00:00');
+        if (forFileName) {
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         }
-
-        // --- Calculate Summary ---
-        let totalPendapatanBruto = 0; // Total Harga Jual dari semua penjualan
-        let totalLabaKotor = 0; // Total Laba Bersih dari semua penjualan
-        let totalPengeluaran = 0; // Total Jumlah dari semua pengeluaran
-
-        filteredSales.forEach(sale => {
-            totalPendapatanBruto += sale.totalHargaJual || 0;
-            totalLabaKotor += sale.labaBersih || 0;
-        });
-
-        filteredExpenses.forEach(expense => {
-            totalPengeluaran += expense.jumlah || 0;
-        });
-
-        const labaBersihKeseluruhan = totalLabaKotor - totalPengeluaran;
-
-        totalPendapatanElement.textContent = formatRupiah(totalPendapatanBruto);
-        totalLabaKotorPenjualanElement.textContent = formatRupiah(totalLabaKotor);
-        totalPengeluaranElement.textContent = formatRupiah(totalPengeluaran);
-        totalLabaBersihElement.textContent = formatRupiah(labaBersihKeseluruhan);
-
-        // --- Render Sales Detail Table ---
-        reportSalesTableBody.innerHTML = '';
-        if (filteredSales.length === 0) {
-            reportSalesTableBody.innerHTML = `<tr><td colspan="6" class="text-center">Tidak ada data penjualan dalam periode ini.</td></tr>`;
-        } else {
-            filteredSales.forEach(sale => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${sale.idTransaksi}</td>
-                    <td>${formatDate(sale.tanggal)}</td>
-                    <td>${sale.namaProduk}</td>
-                    <td>${sale.jumlah}</td>
-                    <td>${formatRupiah(sale.totalHargaJual)}</td>
-                    <td>${formatRupiah(sale.labaBersih)}</td>
-                `;
-                reportSalesTableBody.appendChild(row);
-            });
-        }
-
-        // --- Render Expenses Detail Table ---
-        reportExpensesTableBody.innerHTML = '';
-        if (filteredExpenses.length === 0) {
-            reportExpensesTableBody.innerHTML = `<tr><td colspan="5" class="text-center">Tidak ada data pengeluaran dalam periode ini.</td></tr>`;
-        } else {
-            filteredExpenses.forEach(expense => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${expense.idPengeluaran}</td>
-                    <td>${formatDate(expense.tanggal)}</td>
-                    <td>${expense.deskripsi}</td>
-                    <td>${expense.kategori}</td>
-                    <td>${formatRupiah(expense.jumlah)}</td>
-                `;
-                reportExpensesTableBody.appendChild(row);
-            });
-        }
+        return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
-    // Event listener for generating report
-    generateReportButton.addEventListener('click', generateReport);
+    function generateReport(startDate, endDate) {
+        const sales = getSalesData();
+        const expenses = getExpensesData();
+        
+        const filteredSales = sales.filter(s => {
+            const saleDate = new Date(s.tanggal + 'T00:00:00');
+            return saleDate >= startDate && saleDate <= endDate;
+        });
+        const filteredExpenses = expenses.filter(e => {
+            const expenseDate = new Date(e.tanggal + 'T00:00:00');
+            return expenseDate >= startDate && expenseDate <= endDate;
+        });
 
-    // Generate report on initial page load
-    generateReport();
+        const totalPendapatan = filteredSales.reduce((sum, s) => sum + s.totalHargaJual, 0);
+        const totalPengeluaran = filteredExpenses.reduce((sum, e) => sum + e.jumlah, 0);
+        const totalLabaKotor = filteredSales.reduce((sum, s) => sum + s.labaBersih, 0);
+        const totalLabaBersih = totalLabaKotor - totalPengeluaran;
+
+        totalPendapatanEl.textContent = formatRupiah(totalPendapatan);
+        totalPengeluaranEl.textContent = formatRupiah(totalPengeluaran);
+        totalLabaKotorEl.textContent = formatRupiah(totalLabaKotor);
+        totalLabaBersihEl.textContent = formatRupiah(totalLabaBersih);
+
+        renderSalesDetailTable(filteredSales);
+        renderExpensesDetailTable(filteredExpenses);
+    }
+
+    function renderSalesDetailTable(sales) {
+        salesTableBody.innerHTML = sales.length === 0 ? `<tr><td colspan="5" class="text-center text-muted">Tidak ada penjualan pada periode ini.</td></tr>` : sales.map(s => `<tr><td>${formatDate(s.tanggal)}</td><td>${s.namaProduk}</td><td>${s.jumlah}</td><td>${formatRupiah(s.totalHargaJual)}</td><td class="${s.labaBersih >= 0 ? 'text-success' : 'text-danger'}">${formatRupiah(s.labaBersih)}</td></tr>`).join('');
+    }
+
+    function renderExpensesDetailTable(expenses) {
+        expensesTableBody.innerHTML = expenses.length === 0 ? `<tr><td colspan="4" class="text-center text-muted">Tidak ada pengeluaran pada periode ini.</td></tr>` : expenses.map(e => `<tr><td>${formatDate(e.tanggal)}</td><td>${e.deskripsi}</td><td><span class="badge bg-secondary">${e.kategori}</span></td><td class="text-danger">${formatRupiah(e.jumlah)}</td></tr>`).join('');
+    }
+
+    // --- FUNGSI BARU (REUSABLE): UNTUK MEMBUAT DAN DOWNLOAD FILE EXCEL ---
+    function createAndDownloadExcel(salesData, expensesData, fileName) {
+        const totalPendapatan = salesData.reduce((sum, s) => sum + s.totalHargaJual, 0);
+        const totalPengeluaran = expensesData.reduce((sum, e) => sum + e.jumlah, 0);
+        const totalLabaKotor = salesData.reduce((sum, s) => sum + s.labaBersih, 0);
+        const totalLabaBersih = totalLabaKotor - totalPengeluaran;
+
+        const summaryData = [
+            { Indikator: "Total Pendapatan", Jumlah: totalPendapatan },
+            { Indikator: "Total Pengeluaran", Jumlah: totalPengeluaran },
+            { Indikator: "Total Laba Kotor (dari Penjualan)", Jumlah: totalLabaKotor },
+            { Indikator: "Laba Bersih Final", Jumlah: totalLabaBersih }
+        ];
+
+        const salesDataForExcel = salesData.map(s => ({
+            Tanggal: formatDate(s.tanggal), ID_Transaksi: s.id, Nama_Produk: s.namaProduk,
+            Jumlah_Item: s.jumlah, Total_Harga_Jual: s.totalHargaJual, Laba_Bersih: s.labaBersih
+        }));
+
+        const expensesDataForExcel = expensesData.map(e => ({
+            Tanggal: formatDate(e.tanggal), Deskripsi: e.deskripsi, Kategori: e.kategori,
+            Jumlah_Pengeluaran: e.jumlah, Metode_Pembayaran: e.metodePembayaran, Catatan: e.catatan
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+        wsSummary['B2'].z = wsSummary['B3'].z = wsSummary['B4'].z = wsSummary['B5'].z = '"Rp"#,##0;("Rp"#,##0)';
+        wsSummary['!cols'] = [ {wch:35}, {wch:20} ];
+        XLSX.utils.book_append_sheet(wb, wsSummary, "Ringkasan");
+
+        if (salesDataForExcel.length > 0) {
+            const wsSales = XLSX.utils.json_to_sheet(salesDataForExcel);
+            wsSales['!cols'] = [ {wch:12}, {wch:18}, {wch:30}, {wch:12}, {wch:18}, {wch:18} ];
+            XLSX.utils.book_append_sheet(wb, wsSales, "Detail Penjualan");
+        }
+        
+        if (expensesDataForExcel.length > 0) {
+            const wsExpenses = XLSX.utils.json_to_sheet(expensesDataForExcel);
+            wsExpenses['!cols'] = [ {wch:12}, {wch:30}, {wch:20}, {wch:18}, {wch:18}, {wch:30} ];
+            XLSX.utils.book_append_sheet(wb, wsExpenses, "Detail Pengeluaran");
+        }
+        
+        XLSX.writeFile(wb, fileName);
+    }
+    
+    // --- Event Listeners ---
+    generateReportBtn.addEventListener('click', () => {
+        const startDate = new Date(startDateInput.value + 'T00:00:00');
+        const endDate = new Date(endDateInput.value + 'T00:00:00');
+        endDate.setHours(23, 59, 59, 999);
+        if (!startDateInput.value || !endDateInput.value) {
+            alert("Silakan pilih tanggal mulai dan tanggal akhir.");
+            return;
+        }
+        generateReport(startDate, endDate);
+    });
+
+    // Event listener untuk download rekap bulan lalu (tetap seperti semula)
+    downloadLastMonthBtn.addEventListener('click', () => {
+        const today = new Date();
+        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const year = lastMonth.getFullYear();
+        const month = lastMonth.getMonth();
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+        endDate.setHours(23, 59, 59, 999);
+
+        const sales = getSalesData().filter(s => new Date(s.tanggal + 'T00:00:00') >= startDate && new Date(s.tanggal + 'T00:00:00') <= endDate);
+        const expenses = getExpensesData().filter(e => new Date(e.tanggal + 'T00:00:00') >= startDate && new Date(e.tanggal + 'T00:00:00') <= endDate);
+        
+        const monthName = lastMonth.toLocaleString('id-ID', { month: 'long' });
+        const fileName = `Laporan Keuangan - ${monthName} ${year}.xlsx`;
+        
+        createAndDownloadExcel(sales, expenses, fileName);
+    });
+
+    // Event listener untuk tombol download BARU
+    downloadFilteredBtn.addEventListener('click', () => {
+        const startDateValue = startDateInput.value;
+        const endDateValue = endDateInput.value;
+
+        if (!startDateValue || !endDateValue) {
+            alert("Silakan pilih tanggal di filter terlebih dahulu sebelum men-download.");
+            return;
+        }
+
+        const startDate = new Date(startDateValue + 'T00:00:00');
+        const endDate = new Date(endDateValue + 'T00:00:00');
+        endDate.setHours(23, 59, 59, 999);
+
+        const sales = getSalesData().filter(s => new Date(s.tanggal + 'T00:00:00') >= startDate && new Date(s.tanggal + 'T00:00:00') <= endDate);
+        const expenses = getExpensesData().filter(e => new Date(e.tanggal + 'T00:00:00') >= startDate && new Date(e.tanggal + 'T00:00:00') <= endDate);
+        
+        const fileName = `Laporan ${formatDate(startDateValue, true)} - ${formatDate(endDateValue, true)}.xlsx`;
+        
+        createAndDownloadExcel(sales, expenses, fileName);
+    });
+
+    // --- Inisialisasi Halaman ---
+    function initializePage() {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        startDateInput.value = firstDayOfMonth.toISOString().split('T')[0];
+        endDateInput.value = today.toISOString().split('T')[0]; // Default sampai hari ini
+        
+        generateReport(firstDayOfMonth, today);
+    }
+
+    initializePage();
 });

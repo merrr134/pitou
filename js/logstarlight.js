@@ -1,30 +1,30 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const LOG_STORAGE_KEY = 'starlightLogs';
-    const REMINDER_STORAGE_KEY = 'starlightReminders';
+    const REMINDER_STORAGE_KEY = 'reminders';
 
     const TABLE_BODY = document.getElementById('dataLogTableBody');
     const LOG_FORM = document.getElementById('logForm');
-    const ADD_EDIT_MODAL = new bootstrap.Modal(document.getElementById('tambahLogModal'));
+    const ADD_LOG_MODAL = new bootstrap.Modal(document.getElementById('tambahLogModal'));
     const MODAL_TITLE = document.getElementById('tambahLogModalLabel');
 
-    // Log Form inputs
+    // Form Fields (Log)
     const INPUT_ID = document.getElementById('editLogId');
     const INPUT_TGL_ADD = document.getElementById('inputTglAdd');
     const INPUT_NICK_AKUN_GIFT = document.getElementById('inputNickAkunGift');
     const INPUT_ID_CUST = document.getElementById('inputIdCust');
     const INPUT_NICK_CUST = document.getElementById('inputNickCust');
     const INPUT_TIPE_SL = document.getElementById('inputTipeSL');
-    const INPUT_SUDAH_BAYAR = document.getElementById('inputSudahBayar');
     const INPUT_STATUS_GIFT = document.getElementById('inputStatusGift');
-    const INPUT_TGL_GIFT = document.getElementById('inputTglGift'); // Tanggal Gift yang akan jadi basis pengingat
+    const INPUT_TGL_GIFT = document.getElementById('inputTglGift');
+    const INPUT_SUDAH_BAYAR = document.getElementById('inputSudahBayar');
     const INPUT_CATATAN = document.getElementById('inputCatatan');
 
-    // Search and filter elements
+    // Filter Fields
     const SEARCH_INPUT = document.getElementById('searchLog');
-    const FILTER_STATUS_GIFT = document.getElementById('filterStatusGift');
-    const FILTER_TIPE_SL = document.getElementById('filterTipeSL');
+    const FILTER_STATUS = document.getElementById('filterStatusGift');
+    const FILTER_TIPE = document.getElementById('filterTipeSL');
 
-    // Reminder Modal elements
+    // Reminder Modal
     const ADD_REMINDER_MODAL = new bootstrap.Modal(document.getElementById('addReminderModal'));
     const REMINDER_FORM = document.getElementById('reminderForm');
     const REMINDER_LOG_ID = document.getElementById('reminderLogId');
@@ -33,288 +33,188 @@ document.addEventListener('DOMContentLoaded', function() {
     const REMINDER_DATE = document.getElementById('reminderDate');
     const REMINDER_NOTES = document.getElementById('reminderNotes');
 
+    let logs = [];
 
-    let starlightLogs = [];
+    // --- Data Helper Functions ---
+    const getLogsData = () => JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+    const saveLogsData = (data) => localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(data));
+    const getRemindersData = () => JSON.parse(localStorage.getItem(REMINDER_STORAGE_KEY) || '[]');
+    const saveRemindersData = (data) => localStorage.setItem(REMINDER_STORAGE_KEY, JSON.stringify(data));
 
-    // --- Utility Functions for Starlight Logs ---
-    function getLogsFromLocalStorage() {
-        const storedLogs = localStorage.getItem(LOG_STORAGE_KEY);
-        return storedLogs ? JSON.parse(storedLogs) : [];
-    }
+    const getStatusBadge = (status) => {
+        const colors = { 'Pending': 'bg-warning text-dark', 'Done': 'bg-success', 'Cancel': 'bg-secondary', 'Error': 'bg-danger' };
+        return `<span class="badge ${colors[status] || 'bg-dark'}">${status}</span>`;
+    };
+    
+    const getCountdown = (tglGift) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize today's date
+        const giftDate = new Date(tglGift + 'T00:00:00');
+        const diffTime = giftDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    function saveLogsToLocalStorage(logsArray) {
-        localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logsArray));
-    }
+        if (diffDays < 0) return `<span class="countdown-urgent">Lewat ${Math.abs(diffDays)} hari</span>`;
+        if (diffDays === 0) return `<span class="countdown-urgent">Hari Ini!</span>`;
+        if (diffDays <= 7) return `<span class="countdown-soon">${diffDays} hari lagi</span>`;
+        return `<span class="countdown-normal">${diffDays} hari lagi</span>`;
+    };
 
-    // --- Utility Functions for Reminders ---
-    function getRemindersFromLocalStorage() {
-        const storedReminders = localStorage.getItem(REMINDER_STORAGE_KEY);
-        return storedReminders ? JSON.parse(storedReminders) : [];
-    }
+    const renderLogs = () => {
+        TABLE_BODY.innerHTML = '';
+        const searchTerm = SEARCH_INPUT.value.toLowerCase();
+        const filterStatus = FILTER_STATUS.value;
+        const filterTipe = FILTER_TIPE.value;
 
-    function saveRemindersToLocalStorage(remindersArray) {
-        localStorage.setItem(REMINDER_STORAGE_KEY, JSON.stringify(remindersArray));
-    }
-
-    // --- Formatting Functions ---
-    function formatRupiah(number) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(number);
-    }
-
-    function formatDateForDisplay(dateString) {
-        if (!dateString) return '-';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+        const filteredLogs = logs
+            .filter(log => (log.idCust.toLowerCase().includes(searchTerm) || log.nickCust.toLowerCase().includes(searchTerm)))
+            .filter(log => filterStatus === '' || log.statusGift === filterStatus)
+            .filter(log => filterTipe === '' || log.tipeSL === filterTipe);
+        
+        // Sort: Pending logs first, then by the closest gift date
+        filteredLogs.sort((a, b) => {
+            if (a.statusGift === 'Pending' && b.statusGift !== 'Pending') return -1;
+            if (a.statusGift !== 'Pending' && b.statusGift === 'Pending') return 1;
+            return new Date(a.tglGift) - new Date(b.tglGift);
         });
-    }
-
-    // --- Render Logs to Table ---
-    function renderLogs() {
-        TABLE_BODY.innerHTML = ''; // Clear existing rows
-        const filteredLogs = filterAndSearchLogs(starlightLogs);
 
         if (filteredLogs.length === 0) {
-            TABLE_BODY.innerHTML = `<tr><td colspan="10" class="text-center">Tidak ada catatan log ditemukan.</td></tr>`;
+            TABLE_BODY.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-muted">Tidak ada log yang cocok.</td></tr>`;
             return;
         }
 
         filteredLogs.forEach(log => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${formatDateForDisplay(log.tglAdd)}</td>
-                <td>${log.nickAkunGift}</td>
-                <td>${log.idCust}</td>
-                <td>${log.nickCust}</td>
-                <td>${log.tipeSL}</td>
-                <td><span class="badge bg-${log.sudahBayar ? 'success' : 'danger'}">${log.sudahBayar ? 'Sudah' : 'Belum'}</span></td>
-                <td><span class="badge bg-${log.statusGift === 'Done' ? 'success' : log.statusGift === 'Pending' ? 'warning' : 'danger'}">${log.statusGift}</span></td>
-                <td>${formatDateForDisplay(log.tglGift)}</td>
-                <td>${log.catatan || '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-info me-1 add-reminder-btn"
-                        data-logid="${log.id}"
-                        data-nickcust="${log.nickCust}"
-                        data-tipesl="${log.tipeSL}"
-                        data-tglgift="${log.tglGift}"
-                        >Tambah Pengingat</button>
-                    <button class="btn btn-sm btn-warning me-1 edit-btn" data-id="${log.id}">Edit</button>
-                    <button class="btn btn-sm btn-danger delete-btn" data-id="${log.id}">Hapus</button>
+                <td class="text-start">
+                    <strong>${log.nickCust}</strong><br>
+                    <small class="text-muted">${log.idCust}</small>
+                </td>
+                <td class="text-center">
+                    ${log.nickAkunGift}<br>
+                    <small class="text-muted">Added: ${new Date(log.tglAdd + 'T00:00:00').toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</small>
+                </td>
+                <td class="text-center">
+                    <span class="badge ${log.tipeSL === 'Premium' ? 'bg-warning text-dark' : 'bg-primary'}">${log.tipeSL}</span><br>
+                    <div class="form-check form-check-inline mt-1">
+                        <input class="form-check-input" type="checkbox" disabled ${log.sudahBayar ? 'checked' : ''}>
+                        <label class="form-check-label small">Paid</label>
+                    </div>
+                </td>
+                <td class="text-center">${getStatusBadge(log.statusGift)}</td>
+                <td class="text-center">
+                    <strong>${getCountdown(log.tglGift)}</strong><br>
+                    <small class="text-muted">${new Date(log.tglGift + 'T00:00:00').toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'})}</small>
+                </td>
+                <td class="action-buttons text-center">
+                    <button class="btn btn-sm btn-outline-info reminder-btn" data-id="${log.id}" title="Tambah Pengingat"><i class="bi bi-bell-fill"></i></button>
+                    <button class="btn btn-sm btn-outline-primary edit-btn" data-id="${log.id}" title="Edit"><i class="bi bi-pencil-square"></i></button>
+                    <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${log.id}" title="Hapus"><i class="bi bi-trash3"></i></button>
                 </td>
             `;
             TABLE_BODY.appendChild(row);
         });
+        addEventListenersToButtons();
+    };
 
-        addEventListenersToLogButtons();
-    }
+    const addEventListenersToButtons = () => {
+        document.querySelectorAll('.edit-btn').forEach(btn => btn.onclick = e => handleEdit(e.currentTarget.dataset.id));
+        document.querySelectorAll('.delete-btn').forEach(btn => btn.onclick = e => handleDelete(e.currentTarget.dataset.id));
+        document.querySelectorAll('.reminder-btn').forEach(btn => btn.onclick = e => handleReminder(e.currentTarget.dataset.id));
+    };
 
-    // --- Search and Filter Logic ---
-    function filterAndSearchLogs(logsToFilter) {
-        const searchTerm = SEARCH_INPUT.value.toLowerCase();
-        const selectedStatusGift = FILTER_STATUS_GIFT.value.toLowerCase();
-        const selectedTipeSL = FILTER_TIPE_SL.value.toLowerCase();
-
-        return logsToFilter.filter(log => {
-            const matchesSearch = log.idCust.toLowerCase().includes(searchTerm) ||
-                                  log.nickCust.toLowerCase().includes(searchTerm) ||
-                                  (log.catatan && log.catatan.toLowerCase().includes(searchTerm));
-
-            const matchesStatusGift = selectedStatusGift === '' || log.statusGift.toLowerCase() === selectedStatusGift;
-            const matchesTipeSL = selectedTipeSL === '' || log.tipeSL.toLowerCase() === selectedTipeSL;
-
-            return matchesSearch && matchesStatusGift && matchesTipeSL;
-        });
-    }
-
-    // --- Add/Edit Log Functions ---
-    function resetLogForm() {
+    const resetForm = () => {
         LOG_FORM.reset();
         INPUT_ID.value = '';
-        MODAL_TITLE.textContent = 'Tambah Log Starlight Baru';
-        const today = new Date().toISOString().split('T')[0];
-        INPUT_TGL_ADD.value = today;
-        INPUT_TGL_GIFT.value = today;
-    }
+        MODAL_TITLE.innerHTML = '<i class="bi bi-journal-plus me-2"></i>Formulir Log Starlight';
+        INPUT_TGL_ADD.valueAsDate = new Date();
+    };
 
-    function addLog(newLog) {
-        starlightLogs.push(newLog);
-        saveLogsToLocalStorage(starlightLogs);
+    LOG_FORM.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const logId = INPUT_ID.value;
+        const logData = {
+            id: logId || `SLOG-${Date.now()}`,
+            tglAdd: INPUT_TGL_ADD.value, nickAkunGift: INPUT_NICK_AKUN_GIFT.value,
+            idCust: INPUT_ID_CUST.value, nickCust: INPUT_NICK_CUST.value,
+            tipeSL: INPUT_TIPE_SL.value, statusGift: INPUT_STATUS_GIFT.value,
+            tglGift: INPUT_TGL_GIFT.value, sudahBayar: INPUT_SUDAH_BAYAR.checked,
+            catatan: INPUT_CATATAN.value
+        };
+
+        if (logId) {
+            logs = logs.map(log => log.id === logId ? logData : log);
+        } else {
+            logs.push(logData);
+        }
+        saveLogsData(logs);
         renderLogs();
-    }
+        ADD_LOG_MODAL.hide();
+    });
 
-    function updateLog(updatedLog) {
-        starlightLogs = starlightLogs.map(l => l.id === updatedLog.id ? updatedLog : l);
-        saveLogsToLocalStorage(starlightLogs);
-        renderLogs();
-    }
+    const handleEdit = (id) => {
+        const log = logs.find(l => l.id === id);
+        if (!log) return;
+        MODAL_TITLE.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Edit Log Starlight';
+        INPUT_ID.value = log.id;
+        INPUT_TGL_ADD.value = log.tglAdd; INPUT_NICK_AKUN_GIFT.value = log.nickAkunGift;
+        INPUT_ID_CUST.value = log.idCust; INPUT_NICK_CUST.value = log.nickCust;
+        INPUT_TIPE_SL.value = log.tipeSL; INPUT_STATUS_GIFT.value = log.statusGift;
+        INPUT_TGL_GIFT.value = log.tglGift; INPUT_SUDAH_BAYAR.checked = log.sudahBayar;
+        INPUT_CATATAN.value = log.catatan;
+        ADD_LOG_MODAL.show();
+    };
 
-    function deleteLog(id) {
-        if (confirm('Apakah Anda yakin ingin menghapus catatan log ini?')) {
-            starlightLogs = starlightLogs.filter(log => log.id !== id);
-            // Delete associated reminders when log is deleted
-            let reminders = getRemindersFromLocalStorage();
-            reminders = reminders.filter(r => r.starlightLogId !== id);
-            saveRemindersToLocalStorage(reminders);
-            saveLogsToLocalStorage(starlightLogs);
+    const handleDelete = (id) => {
+        if (confirm('Yakin ingin menghapus log ini?')) {
+            logs = logs.filter(l => l.id !== id);
+            saveLogsData(logs);
             renderLogs();
         }
-    }
-
-    // --- Event Listeners for Log Form ---
-    LOG_FORM.addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const id = INPUT_ID.value || Date.now().toString();
-        const tglAdd = INPUT_TGL_ADD.value;
-        const nickAkunGift = INPUT_NICK_AKUN_GIFT.value.trim();
-        const idCust = INPUT_ID_CUST.value.trim();
-        const nickCust = INPUT_NICK_CUST.value.trim();
-        const tipeSL = INPUT_TIPE_SL.value;
-        const sudahBayar = INPUT_SUDAH_BAYAR.checked;
-        const statusGift = INPUT_STATUS_GIFT.value;
-        const tglGift = INPUT_TGL_GIFT.value;
-        const catatan = INPUT_CATATAN.value.trim();
-
-        if (!tglAdd || !nickAkunGift || !idCust || !nickCust || !tipeSL || !statusGift || !tglGift) {
-            alert('Mohon lengkapi semua data yang diperlukan (kecuali Catatan).');
-            return;
-        }
-
-        const newLog = {
-            id: id,
-            tglAdd: tglAdd,
-            nickAkunGift: nickAkunGift,
-            idCust: idCust,
-            nickCust: nickCust,
-            tipeSL: tipeSL,
-            sudahBayar: sudahBayar,
-            statusGift: statusGift,
-            tglGift: tglGift,
-            catatan: catatan
-        };
-
-        if (INPUT_ID.value) {
-            updateLog(newLog);
-        } else {
-            addLog(newLog);
-        }
-
-        ADD_EDIT_MODAL.hide();
-        resetLogForm();
-    });
-
-    // --- Event Listeners for Log Table Buttons ---
-    function addEventListenersToLogButtons() {
-        document.querySelectorAll('.edit-btn').forEach(button => {
-            button.onclick = (e) => {
-                const idToEdit = e.target.dataset.id;
-                const logToEdit = starlightLogs.find(log => log.id === idToEdit);
-
-                if (logToEdit) {
-                    MODAL_TITLE.textContent = 'Edit Log Starlight';
-                    INPUT_ID.value = logToEdit.id;
-                    INPUT_TGL_ADD.value = logToEdit.tglAdd;
-                    INPUT_NICK_AKUN_GIFT.value = logToEdit.nickAkunGift;
-                    INPUT_ID_CUST.value = logToEdit.idCust;
-                    INPUT_NICK_CUST.value = logToEdit.nickCust;
-                    INPUT_TIPE_SL.value = logToEdit.tipeSL;
-                    INPUT_SUDAH_BAYAR.checked = logToEdit.sudahBayar;
-                    INPUT_STATUS_GIFT.value = logToEdit.statusGift;
-                    INPUT_TGL_GIFT.value = logToEdit.tglGift;
-                    INPUT_CATATAN.value = logToEdit.catatan;
-
-                    ADD_EDIT_MODAL.show();
-                }
-            };
-        });
-
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.onclick = (e) => {
-                deleteLog(e.target.dataset.id);
-            };
-        });
-
-        // --- Add Reminder Button ---
-        document.querySelectorAll('.add-reminder-btn').forEach(button => {
-            button.onclick = (e) => {
-                const logId = e.target.dataset.logid;
-                const nickCust = e.target.dataset.nickcust;
-                const tipeSL = e.target.dataset.tipesl;
-                const tglGift = e.target.dataset.tglgift; // Menggunakan tglGift sebagai basis
-
-                // Pre-fill reminder modal
-                REMINDER_LOG_ID.value = logId;
-                REMINDER_NICK_CUST.value = nickCust;
-                REMINDER_TIPE_SL.value = tipeSL;
-
-                // Sarankan tanggal pengingat (misal: 30 hari dari TGL GIFT)
-                const suggestedDate = new Date(tglGift);
-                suggestedDate.setDate(suggestedDate.getDate() + 30);
-                REMINDER_DATE.value = suggestedDate.toISOString().split('T')[0];
-
-                REMINDER_NOTES.value = `Pengingat gift ${tipeSL} untuk ${nickCust} (dari log tanggal gift: ${formatDateForDisplay(tglGift)}).`;
-
-                ADD_REMINDER_MODAL.show();
-            };
-        });
-    }
-
-    // --- Event Listener for Reminder Form ---
-    REMINDER_FORM.addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const reminderId = Date.now().toString();
-        const linkedLogId = REMINDER_LOG_ID.value;
-        const nickCust = REMINDER_NICK_CUST.value.trim();
-        const tipeSL = REMINDER_TIPE_SL.value.trim();
-        const reminderDate = REMINDER_DATE.value;
-        const notes = REMINDER_NOTES.value.trim();
-
-        if (!reminderDate || !nickCust || !tipeSL) {
-            alert('Mohon lengkapi Tanggal Pengingat, Nickname Customer, dan Tipe Starlight.');
-            return;
-        }
+    };
+    
+    // --- Reminder Logic ---
+    const handleReminder = (id) => {
+        const log = logs.find(l => l.id === id);
+        if (!log) return;
+        REMINDER_FORM.reset();
+        REMINDER_LOG_ID.value = log.id;
+        REMINDER_NICK_CUST.textContent = log.nickCust;
+        REMINDER_TIPE_SL.textContent = log.tipeSL;
+        REMINDER_DATE.value = log.tglGift; // Default ke tanggal gift
+        REMINDER_NOTES.value = `Follow up Starlight untuk ${log.nickCust} (${log.idCust})`;
+        ADD_REMINDER_MODAL.show();
+    };
+    
+    REMINDER_FORM.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const reminders = getRemindersData();
+        const logId = REMINDER_LOG_ID.value;
+        const log = logs.find(l => l.id === logId);
 
         const newReminder = {
-            id: reminderId,
-            starlightLogId: linkedLogId,
-            reminderDate: reminderDate,
-            nickCust: nickCust,
-            tipeSL: tipeSL,
-            notes: notes,
-            isCompleted: false
+            id: `REM-${Date.now()}`,
+            logId: logId,
+            title: `Gift SL: ${log.nickCust}`,
+            date: REMINDER_DATE.value,
+            notes: REMINDER_NOTES.value,
+            isDone: false
         };
-
-        let reminders = getRemindersFromLocalStorage();
         reminders.push(newReminder);
-        saveRemindersToLocalStorage(reminders);
-
-        alert('Pengingat berhasil ditambahkan! Silakan cek di halaman "Pengingat".');
+        saveRemindersData(reminders);
+        alert('Pengingat berhasil ditambahkan!');
         ADD_REMINDER_MODAL.hide();
-        REMINDER_FORM.reset();
     });
 
 
-    // Initialize data and render on page load
-    starlightLogs = getLogsFromLocalStorage();
-    renderLogs();
+    // --- Initialization ---
+    const initializePage = () => {
+        logs = getLogsData();
+        renderLogs();
+        SEARCH_INPUT.addEventListener('keyup', renderLogs);
+        FILTER_STATUS.addEventListener('change', renderLogs);
+        FILTER_TIPE.addEventListener('change', renderLogs);
+        document.getElementById('tambahLogModal').addEventListener('hidden.bs.modal', resetForm);
+    };
 
-    // Set default dates for new log on initial load
-    const today = new Date().toISOString().split('T')[0];
-    INPUT_TGL_ADD.value = today;
-    INPUT_TGL_GIFT.value = today;
-
-    // Event listeners for search and filter
-    SEARCH_INPUT.addEventListener('keyup', renderLogs);
-    FILTER_STATUS_GIFT.addEventListener('change', renderLogs);
-    FILTER_TIPE_SL.addEventListener('change', renderLogs);
-
-    // Reset log form when its modal is hidden
-    document.getElementById('tambahLogModal').addEventListener('hidden.bs.modal', resetLogForm);
+    initializePage();
 });
